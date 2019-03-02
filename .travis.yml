@@ -12,11 +12,12 @@ addons:
     - ubuntu-toolchain-r-test
     packages:
     - g++-6
+    - linux-headers-$(uname -r)
 install:
 - "[ $CC = gcc ] && export CC=gcc-6 || true"
 - "[ $CXX = g++ ] && export CXX=g++-6 || true"
 script:
-- mkdir -p build && cd build && cmake .. && make && make test
+- mkdir -p build && cd build && cmake .. && make
 notifications:
   email:
     on_success: never
