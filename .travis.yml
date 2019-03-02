@@ -11,7 +11,7 @@ cache: ccache
 compiler:
 - gcc
 script:
-- docker build --no-cache -t opendlv-device-gps-peak .
+- docker build --no-cache -t opendlv-device-gps-peak -f Dockerfile.amd64 .
 
 notifications:
   email:
