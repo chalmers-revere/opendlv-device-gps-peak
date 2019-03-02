@@ -1,4 +1,8 @@
 language: cpp
+# The following two lines are required to use Docker.
+sudo: required
+services:
+    - docker
 branches:
   only:
   - "/^master$/"
@@ -6,18 +10,9 @@ branches:
 cache: ccache
 compiler:
 - gcc
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - g++-6
-    - linux-headers-$(uname -r)
-install:
-- "[ $CC = gcc ] && export CC=gcc-6 || true"
-- "[ $CXX = g++ ] && export CXX=g++-6 || true"
 script:
-- mkdir -p build && cd build && cmake .. && make
+- docker build --no-cache -t opendlv-device-gps-peak .
+
 notifications:
   email:
     on_success: never
