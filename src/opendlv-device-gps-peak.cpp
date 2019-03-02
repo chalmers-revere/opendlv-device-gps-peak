@@ -58,8 +58,9 @@ int32_t main(int32_t argc, char **argv) {
         cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
         // Delegate to convert incoming CAN frames into ODVD messages that are broadcast into the OD4Session.
-        opendlv::proxy::AngularVelocityReading msgAngularVelocityReading;
-        auto decode = [&od4, VERBOSE, ID, &msgAngularVelocityReading](cluon::data::TimeStamp ts, uint16_t canFrameID, uint8_t *src, uint8_t len) {
+        opendlv::proxy::AngularVelocityReading msgAVR;
+        opendlv::proxy::GeodeticWgs84Reading msgWGS84R;
+        auto decode = [&od4, VERBOSE, ID, &msgAVR, &msgWGS84R](cluon::data::TimeStamp ts, uint16_t canFrameID, uint8_t *src, uint8_t len) {
             if ( (nullptr == src) || (0 == len) ) return;
             if (PEAK_CAN_GPS_COURSE_SPEED_FRAME_ID == canFrameID) {
                 peak_can_gps_course_speed_t tmp;
@@ -143,32 +144,79 @@ int32_t main(int32_t argc, char **argv) {
             else if (PEAK_CAN_L3_GD20_ROTATION_A_FRAME_ID == canFrameID) {
                 peak_can_l3_gd20_rotation_a_t tmp;
                 if (0 == peak_can_l3_gd20_rotation_a_unpack(&tmp, src, len)) {
-                    msgAngularVelocityReading.angularVelocityX(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_x_decode(tmp.rotation_x)/180.0f * M_PI));
-                    msgAngularVelocityReading.angularVelocityY(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_y_decode(tmp.rotation_y)/180.0f * M_PI));
+                    msgAVR.angularVelocityX(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_x_decode(tmp.rotation_x)/180.0f * M_PI));
+                    msgAVR.angularVelocityY(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_y_decode(tmp.rotation_y)/180.0f * M_PI));
                     if (VERBOSE) {
                         std::stringstream sstr;
-                        msgAngularVelocityReading.accept([](uint32_t, const std::string &, const std::string &) {},
+                        msgAVR.accept([](uint32_t, const std::string &, const std::string &) {},
                                    [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
                                    []() {});
                         std::cout << sstr.str() << std::endl;
                     }
-                    od4.send(msgAngularVelocityReading, ts, ID);
+                    // Will be sent when Z is in.
+                    //od4.send(msgAVR, ts, ID);
                 }
             }
             else if (PEAK_CAN_L3_GD20_ROTATION_B_FRAME_ID == canFrameID) {
                 peak_can_l3_gd20_rotation_b_t tmp;
                 if (0 == peak_can_l3_gd20_rotation_b_unpack(&tmp, src, len)) {
-                    msgAngularVelocityReading.angularVelocityZ(static_cast<float>(peak_can_l3_gd20_rotation_b_rotation_z_decode(tmp.rotation_z)/180.0f * M_PI));
+                    msgAVR.angularVelocityZ(static_cast<float>(peak_can_l3_gd20_rotation_b_rotation_z_decode(tmp.rotation_z)/180.0f * M_PI));
                     if (VERBOSE) {
                         std::stringstream sstr;
-                        msgAngularVelocityReading.accept([](uint32_t, const std::string &, const std::string &) {},
+                        msgAVR.accept([](uint32_t, const std::string &, const std::string &) {},
                                    [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
                                    []() {});
                         std::cout << sstr.str() << std::endl;
                     }
-                    od4.send(msgAngularVelocityReading, ts, ID);
+                    od4.send(msgAVR, ts, ID);
                 }
             }
+            else if (PEAK_CAN_GPS_POSITION_LATITUDE_FRAME_ID == canFrameID) {
+                peak_can_gps_position_latitude_t tmp;
+                if (0 == peak_can_gps_position_latitude_unpack(&tmp, src, len)) {
+                    float latitude{0.0f};
+                    latitude = static_cast<float>(peak_can_gps_position_latitude_gps_latitude_minutes_decode(tmp.gps_latitude_minutes));
+                    latitude += static_cast<float>(peak_can_gps_position_latitude_gps_latitude_degree_decode(tmp.gps_latitude_degree))/60.0f;
+                    int sign = static_cast<int>(peak_can_gps_position_latitude_gps_indicator_ns_decode(tmp.gps_indicator_ns));
+                    if (83 == sign) {
+                        latitude *= -1.0f;
+                    }
+                    msgWGS84R.latitude(latitude);
+
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msgWGS84R.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    // Will be sent when longitude is in.
+                    //od4.send(msgAVR, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_GPS_POSITION_LONGITUDE_FRAME_ID == canFrameID) {
+                peak_can_gps_position_longitude_t tmp;
+                if (0 == peak_can_gps_position_longitude_unpack(&tmp, src, len)) {
+                    float longitude{0.0f};
+                    longitude = static_cast<float>(peak_can_gps_position_longitude_gps_longitude_minutes_decode(tmp.gps_longitude_minutes));
+                    longitude += static_cast<float>(peak_can_gps_position_longitude_gps_longitude_degree_decode(tmp.gps_longitude_degree))/60.0f;
+                    int sign = static_cast<int>(peak_can_gps_position_longitude_gps_indicator_ew_decode(tmp.gps_indicator_ew));
+                    if (87 == sign) {
+                        longitude *= -1.0f;
+                    }
+
+                    msgWGS84R.longitude(longitude);
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msgWGS84R.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msgAVR, ts, ID);
+                }
+            }
+
         };
 
 #ifdef __linux__
