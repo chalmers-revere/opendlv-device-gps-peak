@@ -58,7 +58,8 @@ int32_t main(int32_t argc, char **argv) {
         cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
         // Delegate to convert incoming CAN frames into ODVD messages that are broadcast into the OD4Session.
-        auto decode = [&od4, VERBOSE, ID](cluon::data::TimeStamp ts, uint16_t canFrameID, uint8_t *src, uint8_t len) {
+        opendlv::proxy::AngularVelocityReading msgAngularVelocityReading;
+        auto decode = [&od4, VERBOSE, ID, &msgAngularVelocityReading](cluon::data::TimeStamp ts, uint16_t canFrameID, uint8_t *src, uint8_t len) {
             if ( (nullptr == src) || (0 == len) ) return;
             if (PEAK_CAN_GPS_COURSE_SPEED_FRAME_ID == canFrameID) {
                 peak_can_gps_course_speed_t tmp;
@@ -95,7 +96,7 @@ int32_t main(int32_t argc, char **argv) {
                 if (0 == peak_can_bmc_acceleration_unpack(&tmp, src, len)) {
                     {
                         opendlv::proxy::TemperatureReading msg;
-                        msg.temperature(static_cast<float>(peak_can_bmc_acceleration_temperature_decode(tmp.temperature)*0.5f + 24));
+                        msg.temperature(static_cast<float>(peak_can_bmc_acceleration_temperature_decode(tmp.temperature)));
                         if (VERBOSE) {
                             std::stringstream sstr;
                             msg.accept([](uint32_t, const std::string &, const std::string &) {},
@@ -108,9 +109,9 @@ int32_t main(int32_t argc, char **argv) {
 
                     {
                         opendlv::proxy::AccelerationReading msg;
-                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)*3.91f));
-                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)*3.91f));
-                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)*3.91f));
+                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)));
+                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)));
+                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)));
                         if (VERBOSE) {
                             std::stringstream sstr;
                             msg.accept([](uint32_t, const std::string &, const std::string &) {},
@@ -120,6 +121,52 @@ int32_t main(int32_t argc, char **argv) {
                         }
                         od4.send(msg, ts, ID);
                     }
+                }
+            }
+            else if (PEAK_CAN_BMC_MAGNETIC_FIELD_FRAME_ID == canFrameID) {
+                peak_can_bmc_magnetic_field_t tmp;
+                if (0 == peak_can_bmc_magnetic_field_unpack(&tmp, src, len)) {
+                    opendlv::proxy::MagneticFieldReading msg;
+                    msg.magneticFieldX(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_x_decode(tmp.magnetic_field_x)));
+                    msg.magneticFieldY(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_y_decode(tmp.magnetic_field_y)));
+                    msg.magneticFieldZ(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_z_decode(tmp.magnetic_field_z)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msg, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_L3_GD20_ROTATION_A_FRAME_ID == canFrameID) {
+                peak_can_l3_gd20_rotation_a_t tmp;
+                if (0 == peak_can_l3_gd20_rotation_a_unpack(&tmp, src, len)) {
+                    msgAngularVelocityReading.angularVelocityX(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_x_decode(tmp.rotation_x)/180.0f * M_PI));
+                    msgAngularVelocityReading.angularVelocityY(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_y_decode(tmp.rotation_y)/180.0f * M_PI));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msgAngularVelocityReading.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msgAngularVelocityReading, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_L3_GD20_ROTATION_B_FRAME_ID == canFrameID) {
+                peak_can_l3_gd20_rotation_b_t tmp;
+                if (0 == peak_can_l3_gd20_rotation_b_unpack(&tmp, src, len)) {
+                    msgAngularVelocityReading.angularVelocityZ(static_cast<float>(peak_can_l3_gd20_rotation_b_rotation_z_decode(tmp.rotation_z)/180.0f * M_PI));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msgAngularVelocityReading.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msgAngularVelocityReading, ts, ID);
                 }
             }
         };
