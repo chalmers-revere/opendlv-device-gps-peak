@@ -1,0 +1,80 @@
+# Copyright (C) 2019  Christian Berger
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Part to generate /tmp/peak-can.hpp.
+FROM chalmersrevere/dbc2odvd-amd64:v0.0.6 as generator
+MAINTAINER Christian Berger "christian.berger@gu.se"
+
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get dist-upgrade -y
+
+RUN apt-get install -y --no-install-recommends \
+      cmake \
+      wget \
+      unzip
+
+RUN cd /tmp && \
+    wget http://www.peak-system.com/fileadmin/media/files/pcangps.zip && \
+    unzip pcangps.zip Examples/DeliveryFirmware/PCAN-Explorer\ Example\ Project/PCAN-GPS_Symbols.dbc && \
+    cat Examples/DeliveryFirmware/PCAN-Explorer\ Example\ Project/PCAN-GPS_Symbols.dbc | sed -e 's/[\d128-\d255]//g' > /tmp/peak-can.dbc
+
+ADD . /opt/sources
+WORKDIR /opt/sources
+RUN mkdir build && \
+    cp /tmp/peak-can.dbc . && \
+    cd build && \
+    generateHeaderOnly.sh ../peak-can.dbc ../src/peak-can.odvd && \
+    cp peak_can.hpp /tmp
+
+
+# Part to build opendlv-device-gps-peak.
+FROM pipill/armhf-alpine:edge as builder
+MAINTAINER Christian Berger "christian.berger@gu.se"
+
+RUN [ "cross-build-start" ]
+
+RUN cat /etc/apk/repositories && \
+    echo http://dl-4.alpinelinux.org/alpine/v3.7/main > /etc/apk/repositories && \
+    echo http://dl-4.alpinelinux.org/alpine/v3.7/community >> /etc/apk/repositories
+
+RUN apk update && \
+    apk --no-cache add \
+        cmake \
+        g++ \
+        linux-headers \
+        make
+
+ADD . /opt/sources
+WORKDIR /opt/sources
+
+RUN mkdir -p /opt/sources/build
+COPY --from=generator /tmp/peak_can.hpp /opt/sources/build
+
+RUN cd /opt/sources/build && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/tmp/opendlv-device-gps-peak-dest .. && \
+    make && make install
+
+RUN [ "cross-build-end" ]
+
+
+# Part to deploy opendlv-device-gps-peak.
+FROM pipill/armhf-alpine:edge
+MAINTAINER Christian Berger "christian.berger@gu.se"
+
+WORKDIR /usr/bin
+COPY --from=builder /tmp/opendlv-device-gps-peak-dest/bin/opendlv-device-gps-peak .
+ENTRYPOINT ["/usr/bin/opendlv-device-gps-peak"]
+

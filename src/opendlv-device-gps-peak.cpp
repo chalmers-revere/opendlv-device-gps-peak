@@ -63,18 +63,39 @@ int32_t main(int32_t argc, char **argv) {
             if (PEAK_CAN_GPS_COURSE_SPEED_FRAME_ID == canFrameID) {
                 peak_can_gps_course_speed_t tmp;
                 if (0 == peak_can_gps_course_speed_unpack(&tmp, src, len)) {
-                    opendlv::proxy::GroundSpeedReading msg;
-                    msg.groundSpeed(static_cast<float>(peak_can_gps_course_speed_gps_speed_decode(tmp.gps_speed)));
-                    if (VERBOSE) {
-                        std::stringstream sstr;
-                        msg.accept([](uint32_t, const std::string &, const std::string &) {},
-                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
-                                   []() {});
-                        std::cout << sstr.str() << std::endl;
-                    }
-                    od4.send(msg, ts, ID);
                 }
             }
+            if (PEAK_CAN_GPS_COURSE_SPEED_FRAME_ID == canFrameID) {
+                peak_can_gps_course_speed_t tmp;
+                if (0 == peak_can_gps_course_speed_unpack(&tmp, src, len)) {
+                    {
+                        opendlv::proxy::GroundSpeedReading msg;
+                        msg.groundSpeed(static_cast<float>(peak_can_gps_course_speed_gps_speed_decode(tmp.gps_speed)));
+                        if (VERBOSE) {
+                            std::stringstream sstr;
+                            msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                       [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                       []() {});
+                            std::cout << sstr.str() << std::endl;
+                        }
+                        od4.send(msg, ts, ID);
+                    }
+
+                    {
+                        opendlv::proxy::GeodeticHeadingReading msg;
+                        msg.northHeading(static_cast<float>(peak_can_gps_course_speed_gps_course_decode(tmp.gps_course)));
+                        if (VERBOSE) {
+                            std::stringstream sstr;
+                            msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                       [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                       []() {});
+                            std::cout << sstr.str() << std::endl;
+                        }
+                        od4.send(msg, ts, ID);
+                    }
+                }
+            }
+
         };
 
 #ifdef __linux__

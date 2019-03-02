@@ -13,7 +13,7 @@ peak_can_l3_gd20_rotation_b_t.rotation_z:
 peak_can_gps_status_t.gps_antenna_status:
 peak_can_gps_status_t.gps_num_satellites:
 peak_can_gps_status_t.gps_navigation_method:
-peak_can_gps_course_speed_t.gps_course:
+peak_can_gps_course_speed_t.gps_course:opendlv.proxy.GeodeticHeadingReading.northHeading
 peak_can_gps_course_speed_t.gps_speed:opendlv.proxy.GroundSpeedReading.groundSpeed
 peak_can_gps_position_longitude_t.gps_longitude_minutes:
 peak_can_gps_position_longitude_t.gps_longitude_degree:
