@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -70,7 +71,7 @@ int32_t main(int32_t argc, char **argv) {
                 if (0 == peak_can_gps_course_speed_unpack(&tmp, src, len)) {
                     {
                         opendlv::proxy::GroundSpeedReading msg;
-                        msg.groundSpeed(static_cast<float>(peak_can_gps_course_speed_gps_speed_decode(tmp.gps_speed)));
+                        msg.groundSpeed(static_cast<float>(peak_can_gps_course_speed_gps_speed_decode(tmp.gps_speed)/3.6f));
                         if (VERBOSE) {
                             std::stringstream sstr;
                             msg.accept([](uint32_t, const std::string &, const std::string &) {},
@@ -83,7 +84,7 @@ int32_t main(int32_t argc, char **argv) {
 
                     {
                         opendlv::proxy::GeodeticHeadingReading msg;
-                        msg.northHeading(static_cast<float>(peak_can_gps_course_speed_gps_course_decode(tmp.gps_course)));
+                        msg.northHeading(static_cast<float>(peak_can_gps_course_speed_gps_course_decode(tmp.gps_course)/180.0f * M_PI));
                         if (VERBOSE) {
                             std::stringstream sstr;
                             msg.accept([](uint32_t, const std::string &, const std::string &) {},
