@@ -191,7 +191,7 @@ int32_t main(int32_t argc, char **argv) {
                         std::cout << sstr.str() << std::endl;
                     }
                     // Will be sent when longitude is in.
-                    //od4.send(msgAVR, ts, ID);
+                    //od4.send(msgWGS84R, ts, ID);
                 }
             }
             else if (PEAK_CAN_GPS_POSITION_LONGITUDE_FRAME_ID == canFrameID) {
@@ -213,7 +213,22 @@ int32_t main(int32_t argc, char **argv) {
                                    []() {});
                         std::cout << sstr.str() << std::endl;
                     }
-                    od4.send(msgAVR, ts, ID);
+                    od4.send(msgWGS84R, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_GPS_POSITION_ALTITUDE_FRAME_ID == canFrameID) {
+                peak_can_gps_position_altitude_t tmp;
+                if (0 == peak_can_gps_position_altitude_unpack(&tmp, src, len)) {
+                    opendlv::proxy::AltitudeReading msg;
+                    msg.altitude(static_cast<float>(peak_can_gps_position_altitude_gps_altitude_decode(tmp.gps_altitude)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msg, ts, ID);
                 }
             }
 
