@@ -60,12 +60,6 @@ int32_t main(int32_t argc, char **argv) {
         // Delegate to convert incoming CAN frames into ODVD messages that are broadcast into the OD4Session.
         auto decode = [&od4, VERBOSE, ID](cluon::data::TimeStamp ts, uint16_t canFrameID, uint8_t *src, uint8_t len) {
             if ( (nullptr == src) || (0 == len) ) return;
-
-            if (PEAK_CAN_GPS_COURSE_SPEED_FRAME_ID == canFrameID) {
-                peak_can_gps_course_speed_t tmp;
-                if (0 == peak_can_gps_course_speed_unpack(&tmp, src, len)) {
-                }
-            }
             if (PEAK_CAN_GPS_COURSE_SPEED_FRAME_ID == canFrameID) {
                 peak_can_gps_course_speed_t tmp;
                 if (0 == peak_can_gps_course_speed_unpack(&tmp, src, len)) {
@@ -96,7 +90,38 @@ int32_t main(int32_t argc, char **argv) {
                     }
                 }
             }
+            else if (PEAK_CAN_BMC_ACCELERATION_FRAME_ID == canFrameID) {
+                peak_can_bmc_acceleration_t tmp;
+                if (0 == peak_can_bmc_acceleration_unpack(&tmp, src, len)) {
+                    {
+                        opendlv::proxy::TemperatureReading msg;
+                        msg.temperature(static_cast<float>(peak_can_bmc_acceleration_temperature_decode(tmp.temperature)*0.5f + 24));
+                        if (VERBOSE) {
+                            std::stringstream sstr;
+                            msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                       [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                       []() {});
+                            std::cout << sstr.str() << std::endl;
+                        }
+                        od4.send(msg, ts, ID);
+                    }
 
+                    {
+                        opendlv::proxy::AccelerationReading msg;
+                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)*3.91f));
+                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)*3.91f));
+                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)*3.91f));
+                        if (VERBOSE) {
+                            std::stringstream sstr;
+                            msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                       [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                       []() {});
+                            std::cout << sstr.str() << std::endl;
+                        }
+                        od4.send(msg, ts, ID);
+                    }
+                }
+            }
         };
 
 #ifdef __linux__
