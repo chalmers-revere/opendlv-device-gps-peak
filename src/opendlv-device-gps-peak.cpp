@@ -308,6 +308,67 @@ int32_t main(int32_t argc, char **argv) {
                     od4.send(msg, ts, ID);
                 }
             }
+            else if (PEAK_CAN_IO_FRAME_ID == canFrameID) {
+                peak_can_io_t tmp;
+                if (0 == peak_can_io_unpack(&tmp, src, len)) {
+                    opendlv::device::gps::peak::IO msg;
+                    msg.din1Status(0 < std::fabs(peak_can_io_din1_status_decode(tmp.din1_status)));
+                    msg.din2Status(0 < std::fabs(peak_can_io_din2_status_decode(tmp.din2_status)));
+                    msg.doutStatus(0 < std::fabs(peak_can_io_dout_status_decode(tmp.dout_status)));
+                    msg.SDPresent(0 < std::fabs(peak_can_io_sd_present_decode(tmp.sd_present)));
+                    msg.GPSPowerStatus(0 < std::fabs(peak_can_io_gps_power_status_decode(tmp.gps_power_status)));
+                    msg.deviceID(static_cast<uint8_t>(peak_can_io_device_id_decode(tmp.device_id)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msg, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_RTC_DATE_TIME_FRAME_ID == canFrameID) {
+                peak_can_rtc_date_time_t tmp;
+                if (0 == peak_can_rtc_date_time_unpack(&tmp, src, len)) {
+                    opendlv::device::gps::peak::RTCDateTime msg;
+                    msg.RTCSec(static_cast<uint8_t>(peak_can_rtc_date_time_rtc_sec_decode(tmp.rtc_sec)));
+                    msg.RTCMin(static_cast<uint8_t>(peak_can_rtc_date_time_rtc_min_decode(tmp.rtc_min)));
+                    msg.RTCHour(static_cast<uint8_t>(peak_can_rtc_date_time_rtc_hour_decode(tmp.rtc_hour)));
+                    msg.RTCDayOfWeek(static_cast<uint8_t>(peak_can_rtc_date_time_rtc_day_of_week_decode(tmp.rtc_day_of_week)));
+                    msg.RTCDayOfMonth(static_cast<uint8_t>(peak_can_rtc_date_time_rtc_day_of_month_decode(tmp.rtc_day_of_month)));
+                    msg.RTCMonth(static_cast<uint8_t>(peak_can_rtc_date_time_rtc_month_decode(tmp.rtc_month)));
+                    msg.RTCYear(static_cast<uint16_t>(peak_can_rtc_date_time_rtc_year_decode(tmp.rtc_year)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msg, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_GPS_DATE_TIME_FRAME_ID == canFrameID) {
+                peak_can_gps_date_time_t tmp;
+                if (0 == peak_can_gps_date_time_unpack(&tmp, src, len)) {
+                    opendlv::device::gps::peak::UTCDateTime msg;
+                    msg.UTCYear(static_cast<uint8_t>(peak_can_gps_date_time_utc_year_decode(tmp.utc_year)));
+                    msg.UTCMonth(static_cast<uint8_t>(peak_can_gps_date_time_utc_month_decode(tmp.utc_month)));
+                    msg.UTCDayOfMonth(static_cast<uint8_t>(peak_can_gps_date_time_utc_day_of_month_decode(tmp.utc_day_of_month)));
+                    msg.UTCHour(static_cast<uint8_t>(peak_can_gps_date_time_utc_hour_decode(tmp.utc_hour)));
+                    msg.UTCMinute(static_cast<uint8_t>(peak_can_gps_date_time_utc_minute_decode(tmp.utc_minute)));
+                    msg.UTCSecond(static_cast<uint8_t>(peak_can_gps_date_time_utc_second_decode(tmp.utc_second)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msg, ts, ID);
+                }
+            }
 
         };
 

@@ -31,7 +31,35 @@ message opendlv.device.gps.peak.GPSStatus [id = 1802] {
 
 message opendlv.device.gps.peak.Delusion [id = 1803] {
     float GPS_PDOP            [id = 1];
-    float GPS_HDOP            [id = 1];
-    float GPS_VDOP            [id = 1];
+    float GPS_HDOP            [id = 2];
+    float GPS_VDOP            [id = 3];
+}
+
+message opendlv.device.gps.peak.IO [id = 1804] {
+    bool din1Status           [id = 1];
+    bool din2Status           [id = 2];
+    bool doutStatus           [id = 3];
+    bool SDPresent            [id = 4];
+    bool GPSPowerStatus       [id = 5];
+    uint8 deviceID            [id = 6];
+}
+
+message opendlv.device.gps.peak.UTCDateTime [id = 1805] {
+    uint8 UTCYear             [id = 1];
+    uint8 UTCMonth            [id = 2];
+    uint8 UTCDayOfMonth       [id = 3];
+    uint8 UTCHour             [id = 4];
+    uint8 UTCMinute           [id = 5];
+    uint8 UTCSecond           [id = 6];
+}
+
+message opendlv.device.gps.peak.RTCDateTime [id = 1806] {
+    uint8 RTCSec              [id = 1];
+    uint8 RTCMin              [id = 2];
+    uint8 RTCHour             [id = 3];
+    uint8 RTCDayOfWeek        [id = 4];
+    uint8 RTCDayOfMonth       [id = 5];
+    uint8 RTCMonth            [id = 6];
+    uint16 RTCYear            [id = 7];
 }
 
