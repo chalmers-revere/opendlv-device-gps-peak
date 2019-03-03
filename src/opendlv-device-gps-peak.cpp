@@ -58,9 +58,16 @@ int32_t main(int32_t argc, char **argv) {
         cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
         // Delegate to convert incoming CAN frames into ODVD messages that are broadcast into the OD4Session.
+        std::mutex msgAVRMutex;
         opendlv::proxy::AngularVelocityReading msgAVR;
+
+        std::mutex msgWGS84RMutex;
         opendlv::proxy::GeodeticWgs84Reading msgWGS84R;
-        auto decode = [&od4, VERBOSE, ID, &msgAVR, &msgWGS84R](cluon::data::TimeStamp ts, uint16_t canFrameID, uint8_t *src, uint8_t len) {
+
+        std::mutex msgDelusionMutex;
+        opendlv::device::gps::peak::Delusion msgDelusion;
+
+        auto decode = [&od4, VERBOSE, ID, &msgAVRMutex, &msgAVR, &msgWGS84RMutex, &msgDelusionMutex, &msgDelusion, &msgWGS84R](cluon::data::TimeStamp ts, uint16_t canFrameID, uint8_t *src, uint8_t len) {
             if ( (nullptr == src) || (0 == len) ) return;
             if (PEAK_CAN_GPS_COURSE_SPEED_FRAME_ID == canFrameID) {
                 peak_can_gps_course_speed_t tmp;
@@ -109,6 +116,23 @@ int32_t main(int32_t argc, char **argv) {
                     }
 
                     {
+                        opendlv::device::gps::peak::Acceleration msg;
+                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)));
+                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)));
+                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)));
+                        msg.verticalAxis(static_cast<uint8_t>(peak_can_bmc_acceleration_vertical_axis_decode(tmp.vertical_axis)));
+                        msg.orientation(static_cast<uint8_t>(peak_can_bmc_acceleration_orientation_decode(tmp.orientation)));
+                        if (VERBOSE) {
+                            std::stringstream sstr;
+                            msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                       [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                       []() {});
+                            std::cout << sstr.str() << std::endl;
+                        }
+                        od4.send(msg, ts, ID);
+                    }
+
+                    {
                         opendlv::proxy::AccelerationReading msg;
                         msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)));
                         msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)));
@@ -144,6 +168,7 @@ int32_t main(int32_t argc, char **argv) {
             else if (PEAK_CAN_L3_GD20_ROTATION_A_FRAME_ID == canFrameID) {
                 peak_can_l3_gd20_rotation_a_t tmp;
                 if (0 == peak_can_l3_gd20_rotation_a_unpack(&tmp, src, len)) {
+                    std::lock_guard<std::mutex> lck(msgAVRMutex);
                     msgAVR.angularVelocityX(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_x_decode(tmp.rotation_x)/180.0f * M_PI));
                     msgAVR.angularVelocityY(static_cast<float>(peak_can_l3_gd20_rotation_a_rotation_y_decode(tmp.rotation_y)/180.0f * M_PI));
                     if (VERBOSE) {
@@ -160,6 +185,7 @@ int32_t main(int32_t argc, char **argv) {
             else if (PEAK_CAN_L3_GD20_ROTATION_B_FRAME_ID == canFrameID) {
                 peak_can_l3_gd20_rotation_b_t tmp;
                 if (0 == peak_can_l3_gd20_rotation_b_unpack(&tmp, src, len)) {
+                    std::lock_guard<std::mutex> lck(msgAVRMutex);
                     msgAVR.angularVelocityZ(static_cast<float>(peak_can_l3_gd20_rotation_b_rotation_z_decode(tmp.rotation_z)/180.0f * M_PI));
                     if (VERBOSE) {
                         std::stringstream sstr;
@@ -174,6 +200,7 @@ int32_t main(int32_t argc, char **argv) {
             else if (PEAK_CAN_GPS_POSITION_LATITUDE_FRAME_ID == canFrameID) {
                 peak_can_gps_position_latitude_t tmp;
                 if (0 == peak_can_gps_position_latitude_unpack(&tmp, src, len)) {
+                    std::lock_guard<std::mutex> lck(msgWGS84RMutex);
                     float latitude{0.0f};
                     latitude = static_cast<float>(peak_can_gps_position_latitude_gps_latitude_minutes_decode(tmp.gps_latitude_minutes));
                     latitude += static_cast<float>(peak_can_gps_position_latitude_gps_latitude_degree_decode(tmp.gps_latitude_degree))/60.0f;
@@ -197,6 +224,7 @@ int32_t main(int32_t argc, char **argv) {
             else if (PEAK_CAN_GPS_POSITION_LONGITUDE_FRAME_ID == canFrameID) {
                 peak_can_gps_position_longitude_t tmp;
                 if (0 == peak_can_gps_position_longitude_unpack(&tmp, src, len)) {
+                    std::lock_guard<std::mutex> lck(msgWGS84RMutex);
                     float longitude{0.0f};
                     longitude = static_cast<float>(peak_can_gps_position_longitude_gps_longitude_minutes_decode(tmp.gps_longitude_minutes));
                     longitude += static_cast<float>(peak_can_gps_position_longitude_gps_longitude_degree_decode(tmp.gps_longitude_degree))/60.0f;
@@ -221,6 +249,55 @@ int32_t main(int32_t argc, char **argv) {
                 if (0 == peak_can_gps_position_altitude_unpack(&tmp, src, len)) {
                     opendlv::proxy::AltitudeReading msg;
                     msg.altitude(static_cast<float>(peak_can_gps_position_altitude_gps_altitude_decode(tmp.gps_altitude)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msg.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msg, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_GPS_DELUSIONS_A_FRAME_ID == canFrameID) {
+                peak_can_gps_delusions_a_t tmp;
+                if (0 == peak_can_gps_delusions_a_unpack(&tmp, src, len)) {
+                    std::lock_guard<std::mutex> lck(msgDelusionMutex);
+                    msgDelusion.GPS_PDOP(static_cast<float>(peak_can_gps_delusions_a_gps_pdop_decode(tmp.gps_pdop)));
+                    msgDelusion.GPS_HDOP(static_cast<float>(peak_can_gps_delusions_a_gps_hdop_decode(tmp.gps_hdop)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msgDelusion.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    // Will be sent when delusion frame B is in.
+                    //od4.send(msgDelusion, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_GPS_DELUSIONS_B_FRAME_ID == canFrameID) {
+                peak_can_gps_delusions_b_t tmp;
+                if (0 == peak_can_gps_delusions_b_unpack(&tmp, src, len)) {
+                    std::lock_guard<std::mutex> lck(msgDelusionMutex);
+                    msgDelusion.GPS_VDOP(static_cast<float>(peak_can_gps_delusions_b_gps_vdop_decode(tmp.gps_vdop)));
+                    if (VERBOSE) {
+                        std::stringstream sstr;
+                        msgDelusion.accept([](uint32_t, const std::string &, const std::string &) {},
+                                   [&sstr](uint32_t, std::string &&, std::string &&n, auto v) { sstr << n << " = " << v << '\n'; },
+                                   []() {});
+                        std::cout << sstr.str() << std::endl;
+                    }
+                    od4.send(msgDelusion, ts, ID);
+                }
+            }
+            else if (PEAK_CAN_GPS_STATUS_FRAME_ID == canFrameID) {
+                peak_can_gps_status_t tmp;
+                if (0 == peak_can_gps_status_unpack(&tmp, src, len)) {
+                    opendlv::device::gps::peak::GPSStatus msg;
+                    msg.antennaStatus(static_cast<uint8_t>(peak_can_gps_status_gps_antenna_status_decode(tmp.gps_antenna_status)));
+                    msg.numberOfSatellites(static_cast<uint8_t>(peak_can_gps_status_gps_num_satellites_decode(tmp.gps_num_satellites)));
+                    msg.navigationMethod(static_cast<uint8_t>(peak_can_gps_status_gps_navigation_method_decode(tmp.gps_navigation_method)));
                     if (VERBOSE) {
                         std::stringstream sstr;
                         msg.accept([](uint32_t, const std::string &, const std::string &) {},
