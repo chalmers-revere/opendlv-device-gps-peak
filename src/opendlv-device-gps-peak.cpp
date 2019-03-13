@@ -208,7 +208,7 @@ int32_t main(int32_t argc, char **argv) {
                     if (83 == sign) {
                         latitude *= -1.0f;
                     }
-                    msgWGS84R.latitude(latitude);
+                    msgWGS84R.longitude(latitude);
 
                     if (VERBOSE) {
                         std::stringstream sstr;
@@ -233,7 +233,7 @@ int32_t main(int32_t argc, char **argv) {
                         longitude *= -1.0f;
                     }
 
-                    msgWGS84R.longitude(longitude);
+                    msgWGS84R.latitude(longitude);
                     if (VERBOSE) {
                         std::stringstream sstr;
                         msgWGS84R.accept([](uint32_t, const std::string &, const std::string &) {},
