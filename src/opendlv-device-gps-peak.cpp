@@ -202,13 +202,13 @@ int32_t main(int32_t argc, char **argv) {
                 if (0 == peak_can_gps_position_latitude_unpack(&tmp, src, len)) {
                     std::lock_guard<std::mutex> lck(msgWGS84RMutex);
                     float latitude{0.0f};
-                    latitude = static_cast<float>(peak_can_gps_position_latitude_gps_latitude_minutes_decode(tmp.gps_latitude_minutes));
-                    latitude += static_cast<float>(peak_can_gps_position_latitude_gps_latitude_degree_decode(tmp.gps_latitude_degree))/60.0f;
+                    latitude = static_cast<float>(peak_can_gps_position_latitude_gps_latitude_minutes_decode(tmp.gps_latitude_minutes))/60.0f;
+                    latitude += static_cast<float>(peak_can_gps_position_latitude_gps_latitude_degree_decode(tmp.gps_latitude_degree));
                     int sign = static_cast<int>(peak_can_gps_position_latitude_gps_indicator_ns_decode(tmp.gps_indicator_ns));
                     if (83 == sign) {
                         latitude *= -1.0f;
                     }
-                    msgWGS84R.longitude(latitude);
+                    msgWGS84R.latitude(latitude);
 
                     if (VERBOSE) {
                         std::stringstream sstr;
@@ -226,14 +226,14 @@ int32_t main(int32_t argc, char **argv) {
                 if (0 == peak_can_gps_position_longitude_unpack(&tmp, src, len)) {
                     std::lock_guard<std::mutex> lck(msgWGS84RMutex);
                     float longitude{0.0f};
-                    longitude = static_cast<float>(peak_can_gps_position_longitude_gps_longitude_minutes_decode(tmp.gps_longitude_minutes));
-                    longitude += static_cast<float>(peak_can_gps_position_longitude_gps_longitude_degree_decode(tmp.gps_longitude_degree))/60.0f;
+                    longitude = static_cast<float>(peak_can_gps_position_longitude_gps_longitude_minutes_decode(tmp.gps_longitude_minutes))/60.0f;
+                    longitude += static_cast<float>(peak_can_gps_position_longitude_gps_longitude_degree_decode(tmp.gps_longitude_degree));
                     int sign = static_cast<int>(peak_can_gps_position_longitude_gps_indicator_ew_decode(tmp.gps_indicator_ew));
                     if (87 == sign) {
                         longitude *= -1.0f;
                     }
 
-                    msgWGS84R.latitude(longitude);
+                    msgWGS84R.longitude(longitude);
                     if (VERBOSE) {
                         std::stringstream sstr;
                         msgWGS84R.accept([](uint32_t, const std::string &, const std::string &) {},
