@@ -38,9 +38,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
     -D_XOPEN_SOURCE=700 \
     -D_FORTIFY_SOURCE=2 \
     -DHAVE_JPEG \
-    -O2 \
+    -Os \
     -fstack-protector \
     -fomit-frame-pointer \
+    -ffunction-sections -fdata-sections \
     -pipe \
     -Weffc++ \
     -Wall -Wextra -Wshadow -Wdeprecated \
