@@ -115,11 +115,12 @@ int32_t main(int32_t argc, char **argv) {
                         od4.send(msg, ts, ID);
                     }
 
+                    const float mG_to_mps2{9.80665f/1000.f};
                     {
                         opendlv::device::gps::peak::Acceleration msg;
-                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)));
-                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)));
-                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)));
+                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)*mG_to_mps2));
+                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)*mG_to_mps2));
+                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)*mG_to_mps2));
                         msg.verticalAxis(static_cast<uint8_t>(peak_can_bmc_acceleration_vertical_axis_decode(tmp.vertical_axis)));
                         msg.orientation(static_cast<uint8_t>(peak_can_bmc_acceleration_orientation_decode(tmp.orientation)));
                         if (VERBOSE) {
@@ -134,9 +135,9 @@ int32_t main(int32_t argc, char **argv) {
 
                     {
                         opendlv::proxy::AccelerationReading msg;
-                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)));
-                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)));
-                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)));
+                        msg.accelerationX(static_cast<float>(peak_can_bmc_acceleration_acceleration_x_decode(tmp.acceleration_x)*mG_to_mps2));
+                        msg.accelerationY(static_cast<float>(peak_can_bmc_acceleration_acceleration_y_decode(tmp.acceleration_y)*mG_to_mps2));
+                        msg.accelerationZ(static_cast<float>(peak_can_bmc_acceleration_acceleration_z_decode(tmp.acceleration_z)*mG_to_mps2));
                         if (VERBOSE) {
                             std::stringstream sstr;
                             msg.accept([](uint32_t, const std::string &, const std::string &) {},
@@ -151,10 +152,11 @@ int32_t main(int32_t argc, char **argv) {
             else if (PEAK_CAN_BMC_MAGNETIC_FIELD_FRAME_ID == canFrameID) {
                 peak_can_bmc_magnetic_field_t tmp;
                 if (0 == peak_can_bmc_magnetic_field_unpack(&tmp, src, len)) {
+                    const float mT_to_T{1e-6f};
                     opendlv::proxy::MagneticFieldReading msg;
-                    msg.magneticFieldX(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_x_decode(tmp.magnetic_field_x)));
-                    msg.magneticFieldY(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_y_decode(tmp.magnetic_field_y)));
-                    msg.magneticFieldZ(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_z_decode(tmp.magnetic_field_z)));
+                    msg.magneticFieldX(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_x_decode(tmp.magnetic_field_x)*mT_to_T));
+                    msg.magneticFieldY(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_y_decode(tmp.magnetic_field_y)*mT_to_T));
+                    msg.magneticFieldZ(static_cast<float>(peak_can_bmc_magnetic_field_magnetic_field_z_decode(tmp.magnetic_field_z)*mT_to_T));
                     if (VERBOSE) {
                         std::stringstream sstr;
                         msg.accept([](uint32_t, const std::string &, const std::string &) {},
@@ -460,4 +462,3 @@ int32_t main(int32_t argc, char **argv) {
     }
     return retCode;
 }
-
