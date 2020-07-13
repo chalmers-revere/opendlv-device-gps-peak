@@ -36,17 +36,17 @@ BS_:
 BU_: 
 
 BO_ 1536 BMC_Acceleration: 8 Vector__XXX
- SG_ Acceleration_X : 0|16@1+ (3.91,0) [-20000|20000] "mG" Vector__XXX
- SG_ Acceleration_Y : 16|16@1+ (3.91,0) [-20000|20000] "mG" Vector__XXX
- SG_ Acceleration_Z : 32|16@1+ (3.91,0) [-20000|20000] "mG" Vector__XXX
- SG_ Temperature : 48|8@1+ (0.5,24) [-40|87.5] "deg C" Vector__XXX
+ SG_ Acceleration_X : 0|16@1- (3.91,0) [-20000|20000] "mG" Vector__XXX
+ SG_ Acceleration_Y : 16|16@1- (3.91,0) [-20000|20000] "mG" Vector__XXX
+ SG_ Acceleration_Z : 32|16@1- (3.91,0) [-20000|20000] "mG" Vector__XXX
+ SG_ Temperature : 48|8@1- (0.5,24) [-40|87.5] "deg C" Vector__XXX
  SG_ VerticalAxis : 56|2@1+ (1,0) [0|3] "" Vector__XXX
  SG_ Orientation : 58|3@1+ (1,0) [0|7] "" Vector__XXX
 
 BO_ 1537 BMC_MagneticField: 6 Vector__XXX
- SG_ MagneticField_X : 0|16@1+ (0.3,0) [-9830.4|9830.1] "microT" Vector__XXX
- SG_ MagneticField_Y : 16|16@1+ (0.3,0) [-9830.4|9830.1] "microT" Vector__XXX
- SG_ MagneticField_Z : 32|16@1+ (0.3,0) [-9830.4|9830.1] "microT" Vector__XXX
+ SG_ MagneticField_X : 0|16@1- (0.3,0) [-9830.4|9830.1] "microT" Vector__XXX
+ SG_ MagneticField_Y : 16|16@1- (0.3,0) [-9830.4|9830.1] "microT" Vector__XXX
+ SG_ MagneticField_Z : 32|16@1- (0.3,0) [-9830.4|9830.1] "microT" Vector__XXX
 
 BO_ 1552 L3GD20_Rotation_A: 8 Vector__XXX
  SG_ Rotation_X : 0|32@1+ (1,0) [-4000|4000] "deg/s" Vector__XXX
@@ -121,4 +121,3 @@ SIG_VALTYPE_ 1572 GPS_Altitude : 1;
 SIG_VALTYPE_ 1573 GPS_PDOP : 1;
 SIG_VALTYPE_ 1573 GPS_HDOP : 1;
 SIG_VALTYPE_ 1574 GPS_VDOP : 1;
-
